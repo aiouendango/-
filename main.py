@@ -8,4 +8,4 @@ def webhook():
 
 @app.route("/", methods=["GET"])
 def index():
-    return "AI‰‰‡’c Bot “®‚¢‚Ä‚Ü‚·I", 200
+    return "AIå¿œæ´å›£ Bot å‹•ã„ã¦ã¾ã™ï¼", 200
