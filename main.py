@@ -1,16 +1,13 @@
 from flask import Flask, request
 import os
 import requests
-from openai import OpenAI
+import openai
 
 app = Flask(__name__)
 
 # 環境変数からキーを取得
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-# OpenAIクライアント初期化（v1対応）
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def index():
@@ -32,15 +29,15 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTに問い合わせ（OpenAI v1）
-        response = client.chat.completions.create(
+        # ChatGPTに問い合わせ
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは優しい応援団のAIです"},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response.choices[0].message.content
+        reply_message = response["choices"][0]["message"]["content"]
 
         # LINEに返信
         reply_to_line(reply_token, reply_message)
