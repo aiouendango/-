@@ -5,7 +5,7 @@ import openai
 
 app = Flask(__name__)
 
-# OpenAIとLINEのキー
+# 環境変数からAPIキーを取得
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 line_token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 
@@ -31,7 +31,7 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # OpenAI Chat Completion API (v1形式)
+        # ChatGPTに問い合わせ（OpenAI Python v1対応）
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -39,7 +39,7 @@ def webhook():
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response.choices[0].message["content"]
+        reply_message = response["choices"][0]["message"]["content"]
         print("AI返信:", reply_message)
 
         reply_to_line(reply_token, reply_message)
