@@ -2,10 +2,11 @@ from flask import Flask, request
 import os
 import requests
 import openai
+import traceback  # ← エラー詳細を表示するために追加！
 
 app = Flask(__name__)
 
-# 環境変数からキーを取得（確認用ログも出す）
+# 環境変数からキーを取得
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 
@@ -50,6 +51,7 @@ def webhook():
         return "OK", 200
 
     except Exception as e:
+        traceback.print_exc()  # ← これで詳細エラーがログに出る
         print("エラー:", str(e))
         return "Internal Server Error", 500
 
