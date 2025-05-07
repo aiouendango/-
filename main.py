@@ -2,7 +2,6 @@ from flask import Flask, request
 import os
 import requests
 import openai
-import traceback  # ← エラー詳細を表示するために追加！
 
 app = Flask(__name__)
 
@@ -10,10 +9,7 @@ app = Flask(__name__)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 
-print("OPENAI_API_KEY:", OPENAI_API_KEY)
-print("LINE_CHANNEL_ACCESS_TOKEN:", LINE_CHANNEL_ACCESS_TOKEN)
-
-# OpenAIのAPIキーを設定
+# OpenAIのAPIキー設定
 openai.api_key = OPENAI_API_KEY
 
 @app.route("/", methods=["GET"])
@@ -36,7 +32,7 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTに問い合わせ
+        # ChatGPTに問い合わせ（v0.28の仕様）
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -51,7 +47,6 @@ def webhook():
         return "OK", 200
 
     except Exception as e:
-        traceback.print_exc()  # ← これで詳細エラーがログに出る
         print("エラー:", str(e))
         return "Internal Server Error", 500
 
