@@ -1,13 +1,17 @@
 from flask import Flask, request
-import openai
+from openai import OpenAI
 import requests
 import os
+import traceback
 
 app = Flask(__name__)
 
-# 環境変数から取得
+# 環境変数から取得（Renderの「Environment Variables」に設定しておくこと）
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+# OpenAIのクライアント初期化
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -29,8 +33,8 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTに問い合わせ
-        response = openai.ChatCompletion.create(
+        # ChatGPTへ問い合わせ（OpenAI SDK v1対応）
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは親切な応援団のAIです。"},
@@ -45,6 +49,7 @@ def webhook():
 
     except Exception as e:
         print("エラー:", str(e))
+        traceback.print_exc()  # ← 詳細エラーを表示
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
