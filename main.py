@@ -2,14 +2,16 @@ from flask import Flask, request
 import os
 import requests
 import openai
-import json
-import traceback
 
 app = Flask(__name__)
 
 # 環境変数からキーを取得
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+# デバッグ用：環境変数の値をログに出す（デプロイ後は削除してOK）
+print("🔑 OPENAI_API_KEY:", OPENAI_API_KEY)
+print("🔑 LINE_CHANNEL_ACCESS_TOKEN:", LINE_CHANNEL_ACCESS_TOKEN)
 
 # OpenAIのAPIキーを設定
 openai.api_key = OPENAI_API_KEY
@@ -22,21 +24,19 @@ def index():
 def webhook():
     try:
         body = request.get_json()
-        print("✅ 受信データ:", json.dumps(body, indent=2, ensure_ascii=False))
+        print("📩 受信データ:", body)
 
         if "events" not in body or len(body["events"]) == 0:
-            print("⚠️ イベントなし")
             return "No event", 200
 
         event = body["events"][0]
         if event.get("type") != "message" or event["message"].get("type") != "text":
-            print("⚠️ テキストメッセージではない")
             return "Not a text message", 200
 
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTへのリクエスト
+        # ChatGPT に問い合わせ
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -46,13 +46,12 @@ def webhook():
         )
         reply_message = response["choices"][0]["message"]["content"]
 
-        # LINEへの返信
+        # LINE に返信
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
         print("❌ エラー:", str(e))
-        print(traceback.format_exc())
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
