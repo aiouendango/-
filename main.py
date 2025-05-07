@@ -2,14 +2,17 @@ from flask import Flask, request
 import openai
 import requests
 import os
-import traceback  # ← エラー詳細ログ出すために追加
+import traceback
+
+from openai import OpenAI
 
 app = Flask(__name__)
 
-# 環境変数から取得（Renderで設定済みであること）
+# 環境変数から取得
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -32,24 +35,23 @@ def webhook():
         user_message = event["message"]["text"]
         print("ユーザー発言:", user_message)
 
-        # ChatGPTへ問い合わせ
-        response = openai.ChatCompletion.create(
+        # ✅ 新APIでChatGPTに問い合わせ
+        chat_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは親切な応援団のAIです。"},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response["choices"][0]["message"]["content"]
+        reply_message = chat_response.choices[0].message.content
         print("ChatGPT応答:", reply_message)
 
-        # LINEへ返答
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
-        print("エラー発生:", str(e))
-        traceback.print_exc()  # スタックトレース出力（Renderのログに残る）
+        print("エラー:", str(e))
+        traceback.print_exc()
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
@@ -69,7 +71,7 @@ def reply_to_line(reply_token, message):
     response = requests.post(
         "https://api.line.me/v2/bot/message/reply",
         headers=headers,
-        json=payload  # ← ❌間違ってた「payloada」を修正！
+        json=payload
     )
     print("LINE応答:", response.status_code, response.text)
 
