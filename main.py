@@ -31,7 +31,7 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTに問い合わせ（OpenAI Python v1対応）
+        # OpenAI ChatGPT 呼び出し
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
