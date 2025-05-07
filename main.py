@@ -39,3 +39,36 @@ def webhook():
             ]
         )
         reply_message = response["choices"][0]["message"]["content"]
+
+        # LINEへ返答
+        reply_to_line(reply_token, reply_message)
+        return "OK", 200
+
+    except Exception as e:
+        print("エラー:", str(e))
+        return "Internal Server Error", 500
+
+def reply_to_line(reply_token, message):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+    }
+    payload = {
+        "replyToken": reply_token,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+    response = requests.post(
+        "https://api.line.me/v2/bot/message/reply",
+        headers=headers,
+        json=payload
+    )
+    print("LINE応答:", response.status_code, response.text)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
