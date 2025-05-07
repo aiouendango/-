@@ -5,11 +5,9 @@ import os
 
 app = Flask(__name__)
 
-# 環境変数で管理（セキュアにしたいならRenderの環境設定で設定）
+# 環境変数から取得（Renderの環境設定で登録しておくこと）
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-openai.api_key =  openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def index():
@@ -24,7 +22,7 @@ def webhook():
 
     # ChatGPTに問い合わせ
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # or gpt-4
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "あなたは親切な応援団のAIです。"},
             {"role": "user", "content": user_message}
@@ -40,7 +38,7 @@ def webhook():
 def reply_to_line(reply_token, message):
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {XksTGApvA61gWtqF+Fv/3lm8ZG0qSHPsZFlo7syjTHZntYZJOL5ZaUeYbjTqaizNTwPPx06jaukxdFRzZ4WEHOF0O+81+YqO/drIyP8dS9BPbaf9c7BVmN8F2mJREAmOFAToe5RVPy4qurIJAe5vWAdB04t89/1O/w1cDnyilFU=}"
+        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
     }
     payload = {
         "replyToken": reply_token,
@@ -52,4 +50,3 @@ def reply_to_line(reply_token, message):
         ]
     }
     requests.post("https://api.line.me/v2/bot/message/reply", json=payload, headers=headers)
-
