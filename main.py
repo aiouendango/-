@@ -5,15 +5,12 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# 環境変数の取得
+# 環境変数からキーを取得
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 
-print("OPENAI_API_KEY:", OPENAI_API_KEY)
-print("LINE_CHANNEL_ACCESS_TOKEN:", LINE_CHANNEL_ACCESS_TOKEN)
-
-# OpenAIクライアントの初期化（v1以降）
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+# OpenAIクライアント初期化
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -35,16 +32,15 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTに問い合わせ
-        response = openai_client.chat.completions.create(
+        # ChatGPTに問い合わせ（新方式）
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは優しい応援団のAIです"},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response.choices[0].message.content.strip()
-        print("ChatGPT応答:", reply_message)
+        reply_message = response.choices[0].message.content
 
         # LINEに返信
         reply_to_line(reply_token, reply_message)
@@ -68,7 +64,6 @@ def reply_to_line(reply_token, message):
             }
         ]
     }
-    print("LINE送信ペイロード:", payload)
     response = requests.post(
         "https://api.line.me/v2/bot/message/reply",
         headers=headers,
