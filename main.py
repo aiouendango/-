@@ -1,15 +1,17 @@
 from flask import Flask, request
 import os
+import openai
 import requests
-from openai import OpenAI
+
+from openai import OpenAI  # ← v1用の正しいimport
 
 app = Flask(__name__)
 
-# 環境変数からキーを取得（Renderで設定済みであること）
+# 環境変数からAPIキーを取得
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# OpenAIクライアント（v1系対応）
+# OpenAIクライアント（v1.0以降対応）
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
@@ -20,19 +22,19 @@ def index():
 def webhook():
     try:
         body = request.get_json()
-        print("Received:", body)
+        print("受信:", body)
 
-        if "events" not in body or not body["events"]:
-            return "No events", 200
+        if "events" not in body or len(body["events"]) == 0:
+            return "No event", 200
 
         event = body["events"][0]
         if event.get("type") != "message" or event["message"].get("type") != "text":
-            return "Unsupported event type", 200
+            return "Not a text message", 200
 
-        user_message = event["message"]["text"]
         reply_token = event["replyToken"]
+        user_message = event["message"]["text"]
 
-        # OpenAIへ問い合わせ
+        # GPTへ問い合わせ（v1.0+書き方）
         chat_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -42,12 +44,11 @@ def webhook():
         )
         reply_message = chat_response.choices[0].message.content
 
-        # LINEに返信
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
-        print("エラー:", e)
+        print("エラー:", str(e))
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
@@ -64,7 +65,7 @@ def reply_to_line(reply_token, message):
         headers=headers,
         json=payload
     )
-    print("LINE返信:", response.status_code, response.text)
+    print("LINE応答:", response.status_code, response.text)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
