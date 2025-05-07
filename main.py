@@ -41,17 +41,14 @@ def webhook():
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response.choices[0].message.content  # ← 修正ここ！
-
+        reply_message = response.choices[0].message.content
         print("AI返信:", reply_message)
 
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
-        import traceback
         print("エラー:", str(e))
-        traceback.print_exc()
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
