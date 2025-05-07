@@ -1,16 +1,16 @@
 from flask import Flask, request
 from openai import OpenAI
-import requests
 import os
+import requests
 
 app = Flask(__name__)
 
-# 環境変数から取得（Renderのダッシュボードにて設定）
+# 環境変数からキーを読み込む
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# OpenAIのクライアント初期化（v1以降の正しい書き方）
-client = OpenAI(api_key=OPENAI_API_KEY)
+# OpenAIクライアント作成（v1対応）
+client = OpenAI()
 
 @app.route("/", methods=["GET"])
 def index():
@@ -32,7 +32,7 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # ChatGPTへ問い合わせ（OpenAI公式v1対応）
+        # OpenAI Chat API 呼び出し（v1対応）
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -42,34 +42,21 @@ def webhook():
         )
         reply_message = response.choices[0].message.content
 
-        # LINEへ返答
-        reply_to_line(reply_token, reply_message)
+        # LINEへ返信
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+        }
+        payload = {
+            "replyToken": reply_token,
+            "messages": [{"type": "text", "text": reply_message}]
+        }
+        requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=payload)
         return "OK", 200
 
     except Exception as e:
         print("エラー:", str(e))
         return "Internal Server Error", 500
-
-def reply_to_line(reply_token, message):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
-    }
-    payload = {
-        "replyToken": reply_token,
-        "messages": [
-            {
-                "type": "text",
-                "text": message
-            }
-        ]
-    }
-    response = requests.post(
-        "https://api.line.me/v2/bot/message/reply",
-        headers=headers,
-        json=payload
-    )
-    print("LINE応答:", response.status_code, response.text)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
