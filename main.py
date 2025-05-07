@@ -1,15 +1,16 @@
 from flask import Flask, request
 import os
-import openai
 import requests
+from openai import OpenAI
 
 app = Flask(__name__)
 
+# 環境変数からキーを取得（Renderで設定済みであること）
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# OpenAIクライアント生成（v1以降の書き方）
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+# OpenAIクライアント（v1系対応）
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -19,34 +20,34 @@ def index():
 def webhook():
     try:
         body = request.get_json()
-        print("Received request body:", body)
+        print("Received:", body)
 
-        if "events" not in body or len(body["events"]) == 0:
-            return "No event", 200
+        if "events" not in body or not body["events"]:
+            return "No events", 200
 
         event = body["events"][0]
         if event.get("type") != "message" or event["message"].get("type") != "text":
-            return "Not a text message", 200
+            return "Unsupported event type", 200
 
-        reply_token = event["replyToken"]
         user_message = event["message"]["text"]
+        reply_token = event["replyToken"]
 
-        # ChatGPTへの問い合わせ（v1対応）
-        response = client.chat.completions.create(
+        # OpenAIへ問い合わせ
+        chat_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは親切な応援団のAIです。"},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = response.choices[0].message.content
+        reply_message = chat_response.choices[0].message.content
 
-        # LINEに返答
+        # LINEに返信
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
-        print("エラー:", str(e))
+        print("エラー:", e)
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
@@ -58,8 +59,12 @@ def reply_to_line(reply_token, message):
         "replyToken": reply_token,
         "messages": [{"type": "text", "text": message}]
     }
-    response = requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=payload)
-    print("LINE応答:", response.status_code, response.text)
+    response = requests.post(
+        "https://api.line.me/v2/bot/message/reply",
+        headers=headers,
+        json=payload
+    )
+    print("LINE返信:", response.status_code, response.text)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
