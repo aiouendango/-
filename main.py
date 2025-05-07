@@ -5,10 +5,8 @@ import openai
 
 app = Flask(__name__)
 
-openai_api_key = os.environ.get("OPENAI_API_KEY")
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 line_token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-
-openai.api_key = openai_api_key
 
 @app.route("/", methods=["GET"])
 def index():
@@ -32,16 +30,16 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # OpenAIのレスポンス取得（新バージョン対応）
-        chat_response = openai.chat.completions.create(
+        # OpenAI新バージョン対応（v1系）
+        response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは優しい応援団のAIです。"},
                 {"role": "user", "content": user_message}
             ]
         )
+        reply_message = response.choices[0].message.content
 
-        reply_message = chat_response.choices[0].message.content
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
@@ -56,12 +54,7 @@ def reply_to_line(reply_token, message):
     }
     payload = {
         "replyToken": reply_token,
-        "messages": [
-            {
-                "type": "text",
-                "text": message
-            }
-        ]
+        "messages": [{"type": "text", "text": message}]
     }
     response = requests.post(
         "https://api.line.me/v2/bot/message/reply",
