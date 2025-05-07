@@ -2,6 +2,7 @@ from flask import Flask, request
 import openai
 import requests
 import os
+import traceback  # ← エラー詳細ログ出すために追加
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ def index():
 def webhook():
     try:
         body = request.get_json()
-        print("Received request body:", body)
+        print("受信データ:", body)
 
         if "events" not in body or len(body["events"]) == 0:
             return "No event", 200
@@ -29,6 +30,7 @@ def webhook():
 
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
+        print("ユーザー発言:", user_message)
 
         # ChatGPTへ問い合わせ
         response = openai.ChatCompletion.create(
@@ -39,13 +41,15 @@ def webhook():
             ]
         )
         reply_message = response["choices"][0]["message"]["content"]
+        print("ChatGPT応答:", reply_message)
 
         # LINEへ返答
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
     except Exception as e:
-        print("エラー:", str(e))
+        print("エラー発生:", str(e))
+        traceback.print_exc()  # スタックトレース出力（Renderのログに残る）
         return "Internal Server Error", 500
 
 def reply_to_line(reply_token, message):
@@ -65,7 +69,7 @@ def reply_to_line(reply_token, message):
     response = requests.post(
         "https://api.line.me/v2/bot/message/reply",
         headers=headers,
-        json=payload
+        json=payload  # ← ❌間違ってた「payloada」を修正！
     )
     print("LINE応答:", response.status_code, response.text)
 
