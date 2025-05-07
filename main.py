@@ -63,7 +63,8 @@ def reply_to_line(reply_token, message):
         headers=headers,
         json=payload
     )
-    print("LINE応答:", response.status_code, response.text)
+    print("LINE応答ステータス:", response.status_code)
+    print("LINE応答本文:", response.text)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
