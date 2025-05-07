@@ -1,17 +1,15 @@
 from flask import Flask, request
-import os
-import openai
+from openai import OpenAI
 import requests
-
-from openai import OpenAI  # ← v1用の正しいimport
+import os
 
 app = Flask(__name__)
 
-# 環境変数からAPIキーを取得
+# 環境変数から取得（Renderの環境設定で事前に登録）
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# OpenAIクライアント（v1.0以降対応）
+# OpenAIの新しいクライアント
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/", methods=["GET"])
@@ -22,7 +20,7 @@ def index():
 def webhook():
     try:
         body = request.get_json()
-        print("受信:", body)
+        print("受信データ:", body)
 
         if "events" not in body or len(body["events"]) == 0:
             return "No event", 200
@@ -34,16 +32,17 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # GPTへ問い合わせ（v1.0+書き方）
-        chat_response = client.chat.completions.create(
+        # ChatGPTへ問い合わせ
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "あなたは親切な応援団のAIです。"},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply_message = chat_response.choices[0].message.content
+        reply_message = response.choices[0].message.content
 
+        # LINEに返信
         reply_to_line(reply_token, reply_message)
         return "OK", 200
 
@@ -58,7 +57,12 @@ def reply_to_line(reply_token, message):
     }
     payload = {
         "replyToken": reply_token,
-        "messages": [{"type": "text", "text": message}]
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
     }
     response = requests.post(
         "https://api.line.me/v2/bot/message/reply",
