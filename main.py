@@ -30,7 +30,7 @@ def webhook():
         reply_token = event["replyToken"]
         user_message = event["message"]["text"]
 
-        # OpenAI新バージョン対応（v1系）
+        # OpenAI 新バージョンに対応（openai>=1.0）
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
