@@ -50,3 +50,9 @@ def reply_to_line(reply_token, message):
         ]
     }
     requests.post("https://api.line.me/v2/bot/message/reply", json=payload, headers=headers)
+
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
